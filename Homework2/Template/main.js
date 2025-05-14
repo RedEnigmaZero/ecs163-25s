@@ -1,177 +1,471 @@
 let abFilter = 25;
-const width = window.innerWidth;
-const height = window.innerHeight;
+const width = window.innerWidth - 40;
+const height = window.innerHeight - 80;
 
-let scatterLeft = 0, scatterTop = 0;
-let scatterMargin = {top: 10, right: 30, bottom: 30, left: 60},
-    scatterWidth = 400 - scatterMargin.left - scatterMargin.right,
-    scatterHeight = 350 - scatterMargin.top - scatterMargin.bottom;
+// Scatter plot Dimensions
+let scatterLeft = 50, scatterTop = 20;
+let scatterMargin = {top: 50, right: 30, bottom: 100, left: 70},
+    scatterWidth = 450 - scatterMargin.left - scatterMargin.right,
+    scatterHeight = 400 - scatterMargin.top - scatterMargin.bottom;
 
-let distrLeft = 400, distrTop = 0;
-let distrMargin = {top: 10, right: 30, bottom: 30, left: 60},
-    distrWidth = 400 - distrMargin.left - distrMargin.right,
-    distrHeight = 350 - distrMargin.top - distrMargin.bottom;
+// Bar Chart Dimensions
+let distrLeft = 500, distrTop = 20;
+let distrMargin = {top: 50, right: 30, bottom: 100, left: 70},
+    distrWidth = 450 - distrMargin.left - distrMargin.right,
+    distrHeight = 400 - distrMargin.top - distrMargin.bottom;
 
-let teamLeft = 0, teamTop = 400;
-let teamMargin = {top: 10, right: 30, bottom: 30, left: 60},
-    teamWidth = width - teamMargin.left - teamMargin.right,
-    teamHeight = height-450 - teamMargin.top - teamMargin.bottom;
+// Stream graph dimensions
+let streamLeft = 0, streamTop = 375;
+let streamMargin = {top: 20, right: 30, bottom: 30, left: 80},
+    streamWidth = width - streamMargin.left - streamMargin.right,
+    streamHeight = height - streamTop - streamMargin.top - streamMargin.bottom;
 
-// plots
-d3.csv("players.csv").then(rawData =>{
-    console.log("rawData", rawData);
+function dashboard() {
 
-    rawData.forEach(function(d){
-        d.AB = Number(d.AB);
-        d.H = Number(d.H);
-        d.salary = Number(d.salary);
-        d.SO = Number(d.SO);
+    d3.select("svg").selectAll("*").remove();
+
+    const currentWidth = window.innerWidth - 40;
+    const currentHeight = window.innerHeight - 80;
+
+    scatterWidth = 450 - scatterMargin.left - scatterMargin.right;
+    scatterHeight = 400 - scatterMargin.top - scatterMargin.bottom;
+
+    streamWidth = currentWidth - streamMargin.left - streamMargin.right;
+    streamHeight = currentHeight - streamTop - streamMargin.top - streamMargin.bottom;
+    
+    // plots
+    d3.csv("survey 605.csv").then(rawData =>{
+        console.log("rawData", rawData);
+
+        rawData.forEach(function(d){
+            // Convert data as needed
+            d.Age = d["What is your age?"];
+            d.Gender = d["What is your gender?"];
+            d.Exercise = d["How often do you exercise in a week?"];
+            d.WearableUsage = d["How frequently do you use your fitness wearable?"];
+            d.WearableImpact = d["How has the fitness wearable impacted your fitness routine?"];
+            d.GoalAchievement = d["How has the fitness wearable helped you achieve your fitness goals?"];
+            d.MotivationLevel = d["Has the fitness wearable helped you stay motivated to exercise?"];
+        });
+
+        console.log("processedData", rawData);
+
+        //plot 1: Scatter Plot
+        const svg = d3.select("svg");
+
+        const g1 = svg.append("g")
+                    .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
+                    .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
+                    .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
+
+        // X label
+        g1.append("text")
+            .attr("x", scatterWidth / 2)
+            .attr("y", -5)
+            .attr("font-size", "16px")
+            .attr("text-anchor", "middle")
+            .attr("font-weight", "bold")
+            .text("Wearable Usage vs Exercise Frequency");
+
+        const exerciseOrder = ["Less than once a week", "1-2 times a week", "3-4 times a week", "5 or more times a week"];
+        const wearableOrder = ["Rarely", "1-2 times a week", "3-4 times a week", "Daily"];
+
+        // X scale for wearable usage
+        const x1 = d3.scalePoint()
+        .domain(wearableOrder)
+        .range([0, scatterWidth])
+        .padding(0.5);
+
+        // Y scale for exercise frequency
+        const y1 = d3.scalePoint()
+        .domain(exerciseOrder)
+        .range([scatterHeight, 0])
+        .padding(0.5);
+
+        // Y label
+        g1.append("text")
+            .attr("x", -(scatterHeight / 2))
+            .attr("y", -40)
+            .attr("font-size", "12px")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .text("Exercise Frequency");
+
+        // X axis
+        const xAxisCall = d3.axisBottom(x1);
+        g1.append("g")
+        .attr("transform", `translate(0, ${scatterHeight})`)
+        .call(xAxisCall)
+        .selectAll("text")
+            .attr("y", "10")
+            .attr("x", "-5")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-40)");
+
+        // Y axis
+        const yAxisCall = d3.axisLeft(y1);
+        g1.append("g").call(yAxisCall);
+
+        // Create color scale for gender
+        const colorScale = d3.scaleOrdinal()
+        .domain(["Male", "Female", "Prefer not to say"])
+        .range(["#1f77b4", "#d95555", "#2ca02c"]);
+
+        // Compute count for each combination
+        const combinationCounts = {};
+        rawData.forEach(d => {
+            const key = `${d.Exercise}-${d.WearableUsage}-${d.Gender}`;
+            if (!combinationCounts[key]) {
+                combinationCounts[key] = {
+                    exercise: d.Exercise,
+                    wearable: d.WearableUsage,
+                    gender: d.Gender,
+                    count: 0
+                };
+            }
+            combinationCounts[key].count += 1;
+        });
+
+        // Convert to array
+        const bubbleData = Object.values(combinationCounts);
+
+        // Add circles for bubble chart
+        g1.selectAll("circle")
+        .data(bubbleData)
+        .enter()
+        .append("circle")
+        .attr("cx", d => x1(d.wearable))
+        .attr("cy", d => y1(d.exercise))
+        .attr("r", d => Math.sqrt(d.count) * 5)
+        .attr("fill", d => colorScale(d.gender))
+        .attr("opacity", 0.7)
+        .attr("stroke", "black")
+        .attr("stroke-width", 1);
+
+        // Add legend for gender
+        const legend1 = g1.append("g")
+        .attr("transform", `translate(${scatterWidth - 10}, 0)`);
+
+        const genderTypes = ["Male", "Female", "Prefer not to say"];
+
+        genderTypes.forEach((gender, i) => {
+            const legendRow = legend1.append("g")
+                .attr("transform", `translate(0, ${i * 20})`);
+            
+            legendRow.append("rect")
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", colorScale(gender));
+            
+            legendRow.append("text")
+                .attr("x", 20)
+                .attr("y", 10)
+                .attr("text-anchor", "start")
+                .style("font-size", "12px")
+                .text(gender);
+        });
+
+        //plot 2: Bar Chart for impact of wearable by age
+
+        const g2 = svg.append("g")
+                    .attr("width", distrWidth + distrMargin.left + distrMargin.right)
+                    .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
+                    .attr("transform", `translate(${distrLeft + distrMargin.left}, ${distrTop + distrMargin.top})`);
+
+        // Add title
+        g2.append("text")
+        .attr("x", distrWidth / 2)
+        .attr("y", -5)
+        .attr("font-size", "16px")
+        .attr("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .text("Wearable Impact by Age Group");
+
+        // Process data for impact by age
+        const ageGroups = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64"];
+        const impactTypes = ["Positively impacted my fitness routine", "No impact on my fitness routine", "Negatively impacted my fitness routine", "I don't know"];
+        
+        // Count data by age and impact
+        const ageImpactData = [];
+        ageGroups.forEach(age => {
+            const ageData = rawData.filter(d => d.Age === age);
+            
+            impactTypes.forEach(impact => {
+                const count = ageData.filter(d => d.WearableImpact === impact).length;
+                ageImpactData.push({
+                    age: age,
+                    impact: impact,
+                    count: count
+                });
+            });
+        });
+
+        // X scale for age groups
+        const x2 = d3.scaleBand()
+        .domain(ageGroups)
+        .range([0, distrWidth])
+        .padding(0.2);
+
+        // Y scale for counts
+        const y2 = d3.scaleLinear()
+        .domain([0, d3.max(ageImpactData, d => d.count)])
+        .range([distrHeight, 0])
+        .nice();
+
+        // Create color scale for impact types
+        const impactColorScale = d3.scaleOrdinal()
+        .domain(impactTypes)
+        .range(["#2ca02c", "#999999", "#d62728", "#f4ff29"]);
+
+        // X label
+        g2.append("text")
+        .attr("x", distrWidth / 2)
+        .attr("y", distrHeight + 50)
+        .attr("font-size", "12px")
+        .attr("text-anchor", "middle")
+        .text("Age Group");
+
+        // Y label
+        g2.append("text")
+        .attr("x", -(distrHeight / 2))
+        .attr("y", -40)
+        .attr("font-size", "12px")
+        .attr("text-anchor", "middle")
+        .attr("transform", "rotate(-90)")
+        .text("Count");
+
+        // X axis
+        const xAxisCall2 = d3.axisBottom(x2);
+        g2.append("g")
+        .attr("transform", `translate(0, ${distrHeight})`)
+        .call(xAxisCall2)
+        .selectAll("text")
+            .attr("y", "10")
+            .attr("x", "-5")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-40)");
+
+        // Y axis
+        const yAxisCall2 = d3.axisLeft(y2);
+        g2.append("g").call(yAxisCall2);
+
+        // Create grouped bar chart
+        g2.selectAll(".bar-group")
+        .data(ageGroups)
+        .enter()
+        .append("g")
+        .attr("class", "bar-group")
+        .attr("transform", d => `translate(${x2(d)}, 0)`)
+        .selectAll("rect")
+        .data(d => {
+            return impactTypes.map(impact => {
+                const found = ageImpactData.find(item => item.age === d && item.impact === impact);
+                return {
+                    age: d,
+                    impact: impact,
+                    count: found ? found.count : 0
+                };
+            });
+        })
+        .enter()
+        .append("rect")
+        .attr("x", (d, i) => i * (x2.bandwidth() / impactTypes.length))
+        .attr("y", d => y2(d.count))
+        .attr("width", x2.bandwidth() / impactTypes.length)
+        .attr("height", d => distrHeight - y2(d.count))
+        .attr("fill", d => impactColorScale(d.impact));
+
+        // Add legend for impact types
+        const legend2 = g2.append("g")
+        .attr("transform", `translate(${distrWidth - 10}, 0)`);
+
+        impactTypes.forEach((impact, i) => {
+            const legendRow = legend2.append("g")
+                .attr("transform", `translate(0, ${i * 20})`);
+            
+            legendRow.append("rect")
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", impactColorScale(impact));
+            
+            legendRow.append("text")
+                .attr("x", 15)
+                .attr("y", 10)
+                .attr("text-anchor", "start")
+                .style("font-size", "10px")
+                .text(impact.length > 15 ? impact.substring(0, 15) + "..." : impact);
+        });
+
+        // plot 3: Stream graph for frequency by age and gender
+
+        const g3 = svg.append("g")
+                    .attr("width", streamWidth + streamMargin.left + streamMargin.right)
+                    .attr("height", streamHeight + streamMargin.top + streamMargin.bottom)
+                    .attr("transform", `translate(${streamLeft + streamMargin.left}, ${streamTop + streamMargin.top})`);
+
+        // Add title
+        g3.append("text")
+        .attr("x", streamWidth / 2)
+        .attr("y", -5)
+        .attr("font-size", "16px")
+        .attr("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .text("Exercise Frequency by Age and Gender");
+
+        // Process data for stream graph
+        const exerciseFrequencies = ["Less than once a week", "1-2 times a week", "3-4 times a week", "5 or more times a week"];
+        const genderTypes2 = ["Male", "Female", "Prefer not to say"];
+        
+        const streamData = [];
+        
+        ageGroups.forEach(age => {
+            const ageObject = {age: age};
+            
+            // For each gender and exercise frequency combination
+            genderTypes2.forEach(gender => {
+                exerciseFrequencies.forEach(freq => {
+                    const key = `${gender}-${freq}`;
+                    const count = rawData.filter(d => 
+                        d.Age === age && 
+                        d.Gender === gender && 
+                        d.Exercise === freq
+                    ).length;
+                    
+                    ageObject[key] = count;
+                });
+            });
+            
+            streamData.push(ageObject);
+        });
+
+        const keys = [];
+        genderTypes2.forEach(gender => {
+            exerciseFrequencies.forEach(freq => {
+                keys.push(`${gender}-${freq}`);
+            });
+        });
+
+    
+        const stack = d3.stack()
+            .keys(keys)
+            .offset(d3.stackOffsetWiggle)
+            .order(d3.stackOrderInsideOut);
+
+
+        const stackedData = stack(streamData);
+
+        // X scale for age groups
+        const x3 = d3.scaleBand()
+            .domain(ageGroups)
+            .range([0, streamWidth])
+            .padding(0.1);
+
+        // Y scale for counts
+        const y3 = d3.scaleLinear()
+            .domain([
+                d3.min(stackedData, layer => d3.min(layer, d => d[0])),
+                d3.max(stackedData, layer => d3.max(layer, d => d[1]))
+            ])
+            .range([streamHeight, 0]);
+
+        // Create a color scale for the stream layers
+        const layerColorScale = d3.scaleOrdinal()
+            .domain(keys)
+            .range(d3.schemeCategory10);
+
+        // Create the stream graph
+        g3.selectAll("path")
+            .data(stackedData)
+            .enter()
+            .append("path")
+            .attr("d", d3.area()
+                .x((d, i) => x3(d.data.age) + x3.bandwidth() / 2)
+                .y0(d => y3(d[0]))
+                .y1(d => y3(d[1]))
+                .curve(d3.curveBasis)
+            )
+            .attr("fill", d => {
+                const [gender] = d.key.split("-");
+                return colorScale(gender);
+            })
+            .attr("opacity", 0.8)
+            .attr("stroke", "#000")
+            .attr("stroke-width", 0.5);
+
+        // Add X axis
+        const xAxisCall3 = d3.axisBottom(x3);
+        g3.append("g")
+            .attr("transform", `translate(0, ${streamHeight})`)
+            .call(xAxisCall3);
+
+        // X label
+        g3.append("text")
+            .attr("x", streamWidth / 2)
+            .attr("y", streamHeight + 35)
+            .attr("font-size", "14px")
+            .attr("text-anchor", "middle")
+            .text("Age Group");
+
+        // Y label
+        g3.append("text")
+            .attr("x", -(streamHeight / 2))
+            .attr("y", -45)
+            .attr("font-size", "14px")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .text("Exercise Frequency Distribution");
+
+        // Create legend for the stream graph
+        const streamLegend = g3.append("g")
+            .attr("transform", `translate(${streamWidth - 120}, 10)`);
+
+        // Legend for gender
+        genderTypes2.forEach((gender, i) => {
+            const legendRow = streamLegend.append("g")
+                .attr("transform", `translate(0, ${i * 20})`);
+            
+            legendRow.append("rect")
+                .attr("width", 10)
+                .attr("height", 10)
+                .attr("fill", colorScale(gender));
+            
+            legendRow.append("text")
+                .attr("x", 15)
+                .attr("y", 10)
+                .attr("text-anchor", "start")
+                .style("font-size", "12px")
+                .text(gender);
+        });
+
+        // Add legend for exercise frequencies
+        const freqLegend = g3.append("g")
+            .attr("transform", `translate(${streamWidth - 320}, 10)`);
+
+        freqLegend.append("text")
+            .attr("x", 0)
+            .attr("y", -5)
+            .attr("font-size", "12px")
+            .attr("font-weight", "bold")
+            .text("Exercise Frequency:");
+
+        exerciseFrequencies.forEach((freq, i) => {
+            const legendRow = freqLegend.append("g")
+                .attr("transform", `translate(0, ${i * 20})`);
+            
+            legendRow.append("text")
+                .attr("x", 0)
+                .attr("y", 10)
+                .attr("text-anchor", "start")
+                .style("font-size", "12px")
+                .text(freq);
+        });
+
+
+        }).catch(function(error){
+        console.log(error);
     });
+}
 
+dashboard();
 
-    const filteredData = rawData.filter(d=>d.AB>abFilter);
-    const processedData = filteredData.map(d=>{
-                          return {
-                              "H_AB":d.H/d.AB,
-                              "SO_AB":d.SO/d.AB,
-                              "teamID":d.teamID,
-                          };
-    });
-    console.log("processedData", processedData);
-
-    //plot 1: Scatter Plot
-    const svg = d3.select("svg");
-
-    const g1 = svg.append("g")
-                .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
-                .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
-                .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
-
-    // X label
-    g1.append("text")
-    .attr("x", scatterWidth / 2)
-    .attr("y", scatterHeight + 50)
-    .attr("font-size", "20px")
-    .attr("text-anchor", "middle")
-    .text("H/AB");
-
-
-    // Y label
-    g1.append("text")
-    .attr("x", -(scatterHeight / 2))
-    .attr("y", -40)
-    .attr("font-size", "20px")
-    .attr("text-anchor", "middle")
-    .attr("transform", "rotate(-90)")
-    .text("SO/AB");
-
-    // X ticks
-    const x1 = d3.scaleLinear()
-    .domain([0, d3.max(processedData, d => d.H_AB)])
-    .range([0, scatterWidth]);
-
-    const xAxisCall = d3.axisBottom(x1)
-                        .ticks(7);
-    g1.append("g")
-    .attr("transform", `translate(0, ${scatterHeight})`)
-    .call(xAxisCall)
-    .selectAll("text")
-        .attr("y", "10")
-        .attr("x", "-5")
-        .attr("text-anchor", "end")
-        .attr("transform", "rotate(-40)");
-
-    // Y ticks
-    const y1 = d3.scaleLinear()
-    .domain([0, d3.max(processedData, d => d.SO_AB)])
-    .range([scatterHeight, 0]);
-
-    const yAxisCall = d3.axisLeft(y1)
-                        .ticks(13);
-    g1.append("g").call(yAxisCall);
-
-    // circles
-    const circles = g1.selectAll("circle").data(processedData);
-
-    circles.enter().append("circle")
-         .attr("cx", d => x1(d.H_AB))
-         .attr("cy", d => y1(d.SO_AB))
-         .attr("r", 5)
-         .attr("fill", "#69b3a2");
-
-    const g2 = svg.append("g")
-                .attr("width", distrWidth + distrMargin.left + distrMargin.right)
-                .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
-                .attr("transform", `translate(${distrLeft}, ${distrTop})`);
-
-    //plot 2: Bar Chart for Team Player Count
-
-    const teamCounts = processedData.reduce((s, { teamID }) => (s[teamID] = (s[teamID] || 0) + 1, s), {});
-    const teamData = Object.keys(teamCounts).map((key) => ({ teamID: key, count: teamCounts[key] }));
-    console.log("teamData", teamData);
-
-
-    const g3 = svg.append("g")
-                .attr("width", teamWidth + teamMargin.left + teamMargin.right)
-                .attr("height", teamHeight + teamMargin.top + teamMargin.bottom)
-                .attr("transform", `translate(${teamMargin.left}, ${teamTop})`);
-
-    // X label
-    g3.append("text")
-    .attr("x", teamWidth / 2)
-    .attr("y", teamHeight + 50)
-    .attr("font-size", "20px")
-    .attr("text-anchor", "middle")
-    .text("Team");
-
-
-    // Y label
-    g3.append("text")
-    .attr("x", -(teamHeight / 2))
-    .attr("y", -40)
-    .attr("font-size", "20px")
-    .attr("text-anchor", "middle")
-    .attr("transform", "rotate(-90)")
-    .text("Number of players");
-
-    // X ticks
-    const x2 = d3.scaleBand()
-    .domain(teamData.map(d => d.teamID))
-    .range([0, teamWidth])
-    .paddingInner(0.3)
-    .paddingOuter(0.2);
-
-    const xAxisCall2 = d3.axisBottom(x2);
-    g3.append("g")
-    .attr("transform", `translate(0, ${teamHeight})`)
-    .call(xAxisCall2)
-    .selectAll("text")
-        .attr("y", "10")
-        .attr("x", "-5")
-        .attr("text-anchor", "end")
-        .attr("transform", "rotate(-40)");
-
-    // Y ticks
-    const y2 = d3.scaleLinear()
-    .domain([0, d3.max(teamData, d => d.count)])
-    .range([teamHeight, 0])
-    .nice();
-
-    const yAxisCall2 = d3.axisLeft(y2)
-                        .ticks(6);
-    g3.append("g").call(yAxisCall2);
-
-    // bars
-    const bars = g3.selectAll("rect").data(teamData);
-
-    bars.enter().append("rect")
-    .attr("y", d => y2(d.count))
-    .attr("x", d => x2(d.teamID))
-    .attr("width", x2.bandwidth())
-    .attr("height", d => teamHeight - y2(d.count))
-    .attr("fill", "steelblue");
-
-
-    }).catch(function(error){
-    console.log(error);
-});
+window.addEventListener("resize", dashboard);
