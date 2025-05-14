@@ -33,6 +33,8 @@ function dashboard() {
     streamWidth = currentWidth - streamMargin.left - streamMargin.right;
     streamHeight = currentHeight - streamTop - streamMargin.top - streamMargin.bottom;
     
+    const defultMargin = {top: 50, right: 30, bottom: 100, left: 70};
+
     // plots
     d3.csv("survey 605.csv").then(rawData =>{
         console.log("rawData", rawData);
@@ -51,17 +53,44 @@ function dashboard() {
         console.log("processedData", rawData);
 
         //plot 1: Scatter Plot
-        const svg = d3.select("svg");
+        scatter(rawData, defultMargin);
+
+        //plot 2: Bar Chart for impact of wearable by age
+        bar(rawData, defultMargin);
+
+        // plot 3: Stream graph for frequency by age and gender
+        stream(rawData, defultMargin);
+
+        }).catch(function(error){
+        console.log(error);
+    });
+}
+
+function scatter(data, margin) {
+    const container = d3.select("#scatter-plot-container");
+
+    const containerWidth = container.node().getBoundingClientRect().width;
+    const containerHeight = container.node().getBoundingClientRect().height;
+
+    const scatterWidth = containerWidth - margin.left - margin.right;
+    const scatterHeight = containerHeight - margin.top - margin.bottom;
+
+    if (scatterHeight < 0) scatterHeight = 0;
+
+
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight);
 
         const g1 = svg.append("g")
-                    .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
-                    .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
-                    .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
+                .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
+                .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
+                .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
 
         // X label
         g1.append("text")
             .attr("x", scatterWidth / 2)
-            .attr("y", -5)
+            .attr("y", -margin.top / 2 + 5)
             .attr("font-size", "16px")
             .attr("text-anchor", "middle")
             .attr("font-weight", "bold")
@@ -113,7 +142,7 @@ function dashboard() {
 
         // Compute count for each combination
         const combinationCounts = {};
-        rawData.forEach(d => {
+        data.forEach(d => {
             const key = `${d.Exercise}-${d.WearableUsage}-${d.Gender}`;
             if (!combinationCounts[key]) {
                 combinationCounts[key] = {
@@ -165,13 +194,23 @@ function dashboard() {
                 .text(gender);
         });
 
-        //plot 2: Bar Chart for impact of wearable by age
+}
 
-        const g2 = svg.append("g")
-                    .attr("width", distrWidth + distrMargin.left + distrMargin.right)
-                    .attr("height", distrHeight + distrMargin.top + distrMargin.bottom)
-                    .attr("transform", `translate(${distrLeft + distrMargin.left}, ${distrTop + distrMargin.top})`);
+function bar(data, margin) {
+    const container = d3.select("#bar-chart-container");
+    const containerWidth = container.node().getBoundingClientRect().width;
+    const containerHeight = container.node().getBoundingClientRect().height;
 
+    const distrWidth = containerWidth - margin.left - margin.right;
+    const distrHeight = containerHeight - margin.top - margin.bottom;
+    if (distrHeight < 0) distrHeight = 0;
+
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight);
+
+    const g2 = svg.append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`)
         // Add title
         g2.append("text")
         .attr("x", distrWidth / 2)
@@ -188,7 +227,7 @@ function dashboard() {
         // Count data by age and impact
         const ageImpactData = [];
         ageGroups.forEach(age => {
-            const ageData = rawData.filter(d => d.Age === age);
+            const ageData = data.filter(d => d.Age === age);
             
             impactTypes.forEach(impact => {
                 const count = ageData.filter(d => d.WearableImpact === impact).length;
@@ -295,22 +334,31 @@ function dashboard() {
                 .style("font-size", "10px")
                 .text(impact.length > 15 ? impact.substring(0, 15) + "..." : impact);
         });
+}
 
-        // plot 3: Stream graph for frequency by age and gender
+function stream(data, margin) {
+    const container = d3.select("#stream-graph-container");
+    const containerWidth = container.node().getBoundingClientRect().width;
+    const containerHeight = container.node().getBoundingClientRect().height;
 
-        const g3 = svg.append("g")
-                    .attr("width", streamWidth + streamMargin.left + streamMargin.right)
-                    .attr("height", streamHeight + streamMargin.top + streamMargin.bottom)
-                    .attr("transform", `translate(${streamLeft + streamMargin.left}, ${streamTop + streamMargin.top})`);
+    const streamWidth = containerWidth - margin.left - margin.right;
+    const streamHeight = containerHeight - margin.top - margin.bottom;
+    if (streamHeight < 0) streamHeight = 0;
 
-        // Add title
-        g3.append("text")
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight);
+
+    const g3 = svg.append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`)
+
+    g3.append("text")
         .attr("x", streamWidth / 2)
         .attr("y", -5)
         .attr("font-size", "16px")
         .attr("text-anchor", "middle")
         .attr("font-weight", "bold")
-        .text("Exercise Frequency by Age and Gender");
+        .text("Exercise Frequency by Age and Gender")
 
         // Process data for stream graph
         const exerciseFrequencies = ["Less than once a week", "1-2 times a week", "3-4 times a week", "5 or more times a week"];
@@ -325,7 +373,7 @@ function dashboard() {
             genderTypes2.forEach(gender => {
                 exerciseFrequencies.forEach(freq => {
                     const key = `${gender}-${freq}`;
-                    const count = rawData.filter(d => 
+                    const count = data.filter(d => 
                         d.Age === age && 
                         d.Gender === gender && 
                         d.Exercise === freq
@@ -459,11 +507,6 @@ function dashboard() {
                 .style("font-size", "12px")
                 .text(freq);
         });
-
-
-        }).catch(function(error){
-        console.log(error);
-    });
 }
 
 dashboard();
