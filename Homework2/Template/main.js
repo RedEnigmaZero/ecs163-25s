@@ -22,16 +22,6 @@ let streamMargin = {top: 20, right: 30, bottom: 30, left: 80},
 
 function dashboard() {
 
-    d3.select("svg").selectAll("*").remove();
-
-    const currentWidth = window.innerWidth - 40;
-    const currentHeight = window.innerHeight - 80;
-
-    scatterWidth = 450 - scatterMargin.left - scatterMargin.right;
-    scatterHeight = 400 - scatterMargin.top - scatterMargin.bottom;
-
-    streamWidth = currentWidth - streamMargin.left - streamMargin.right;
-    streamHeight = currentHeight - streamTop - streamMargin.top - streamMargin.bottom;
     
     const defultMargin = {top: 50, right: 30, bottom: 100, left: 70};
 
@@ -68,6 +58,7 @@ function dashboard() {
 
 function scatter(data, margin) {
     const container = d3.select("#scatter-plot-container");
+    container.selectAll("svg").remove();
 
     const containerWidth = container.node().getBoundingClientRect().width;
     const containerHeight = container.node().getBoundingClientRect().height;
@@ -79,15 +70,15 @@ function scatter(data, margin) {
 
 
     const svg = container.append("svg")
-        .attr("width", containerWidth)
+        .attr("width", containerWidth + 5000)
         .attr("height", containerHeight);
 
         const g1 = svg.append("g")
                 .attr("width", scatterWidth + scatterMargin.left + scatterMargin.right)
                 .attr("height", scatterHeight + scatterMargin.top + scatterMargin.bottom)
-                .attr("transform", `translate(${scatterMargin.left}, ${scatterMargin.top})`);
+                .attr("transform", `translate(${scatterMargin.left + 50}, ${scatterMargin.top})`);
 
-        // X label
+        // add title
         g1.append("text")
             .attr("x", scatterWidth / 2)
             .attr("y", -margin.top / 2 + 5)
@@ -105,6 +96,15 @@ function scatter(data, margin) {
         .range([0, scatterWidth])
         .padding(0.5);
 
+        // X label
+        g1.append("text")
+        .attr("x", scatterWidth / 2)
+        .attr("y", scatterHeight + 80)
+        .attr("font-size", "12px")
+        .attr("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .text("Usage Frequency");
+
         // Y scale for exercise frequency
         const y1 = d3.scalePoint()
         .domain(exerciseOrder)
@@ -113,11 +113,11 @@ function scatter(data, margin) {
 
         // Y label
         g1.append("text")
-            .attr("x", -(scatterHeight / 2))
-            .attr("y", -40)
+            .attr("x", 0)
+            .attr("y", -10)
             .attr("font-size", "12px")
             .attr("text-anchor", "middle")
-            .attr("transform", "rotate(-90)")
+            .attr("font-weight", "bold")
             .text("Exercise Frequency");
 
         // X axis
@@ -137,8 +137,8 @@ function scatter(data, margin) {
 
         // Create color scale for gender
         const colorScale = d3.scaleOrdinal()
-        .domain(["Male", "Female", "Prefer not to say"])
-        .range(["#1f77b4", "#d95555", "#2ca02c"]);
+        .domain(["Male", "Female"])
+        .range(["#1f77b4", "#d95555"]);
 
         // Compute count for each combination
         const combinationCounts = {};
@@ -173,9 +173,9 @@ function scatter(data, margin) {
 
         // Add legend for gender
         const legend1 = g1.append("g")
-        .attr("transform", `translate(${scatterWidth - 10}, 0)`);
+        .attr("transform", `translate(${scatterWidth - 115}, 0)`);
 
-        const genderTypes = ["Male", "Female", "Prefer not to say"];
+        const genderTypes = ["Male", "Female"];
 
         genderTypes.forEach((gender, i) => {
             const legendRow = legend1.append("g")
@@ -198,6 +198,8 @@ function scatter(data, margin) {
 
 function bar(data, margin) {
     const container = d3.select("#bar-chart-container");
+    container.selectAll("svg").remove();
+
     const containerWidth = container.node().getBoundingClientRect().width;
     const containerHeight = container.node().getBoundingClientRect().height;
 
@@ -262,6 +264,7 @@ function bar(data, margin) {
         .attr("y", distrHeight + 50)
         .attr("font-size", "12px")
         .attr("text-anchor", "middle")
+        .attr("font-weight", "bold")
         .text("Age Group");
 
         // Y label
@@ -271,6 +274,7 @@ function bar(data, margin) {
         .attr("font-size", "12px")
         .attr("text-anchor", "middle")
         .attr("transform", "rotate(-90)")
+        .attr("font-weight", "bold")
         .text("Count");
 
         // X axis
@@ -316,7 +320,7 @@ function bar(data, margin) {
 
         // Add legend for impact types
         const legend2 = g2.append("g")
-        .attr("transform", `translate(${distrWidth - 10}, 0)`);
+        .attr("transform", `translate(${distrWidth - 200}, 0)`);
 
         impactTypes.forEach((impact, i) => {
             const legendRow = legend2.append("g")
@@ -332,18 +336,31 @@ function bar(data, margin) {
                 .attr("y", 10)
                 .attr("text-anchor", "start")
                 .style("font-size", "10px")
-                .text(impact.length > 15 ? impact.substring(0, 15) + "..." : impact);
+                .text(impact);
         });
 }
 
 function stream(data, margin) {
     const container = d3.select("#stream-graph-container");
+    container.selectAll("svg").remove();
+
     const containerWidth = container.node().getBoundingClientRect().width;
     const containerHeight = container.node().getBoundingClientRect().height;
 
     const streamWidth = containerWidth - margin.left - margin.right;
-    const streamHeight = containerHeight - margin.top - margin.bottom;
+    const streamHeight = containerHeight + 80 - margin.top - margin.bottom;
     if (streamHeight < 0) streamHeight = 0;
+
+    // Inside stream function
+    console.log("Stream Container - Width:", containerWidth, "Height:", containerHeight);
+    console.log("Stream Graph Area - Width:", streamWidth, "Height:", streamHeight);
+
+    if (streamHeight <= 0 || streamWidth <= 0) {
+        console.error("Stream graph has NO DRAWING AREA. Height or Width is <= 0.");
+        // Optionally, write this message to the container itself for visual feedback
+        container.append("p").style("color", "red").text("Error: Stream graph has no drawing area.");
+        return; // Exit if no space
+    }
 
     const svg = container.append("svg")
         .attr("width", containerWidth)
@@ -364,6 +381,8 @@ function stream(data, margin) {
         const exerciseFrequencies = ["Less than once a week", "1-2 times a week", "3-4 times a week", "5 or more times a week"];
         const genderTypes2 = ["Male", "Female", "Prefer not to say"];
         
+        const ageGroups = ["Under 18", "18-24", "25-34", "35-44", "45-54", "55-64"];
+
         const streamData = [];
         
         ageGroups.forEach(age => {
@@ -417,9 +436,9 @@ function stream(data, margin) {
             .range([streamHeight, 0]);
 
         // Create a color scale for the stream layers
-        const layerColorScale = d3.scaleOrdinal()
-            .domain(keys)
-            .range(d3.schemeCategory10);
+        const colorScale = d3.scaleOrdinal()
+        .domain(["Male", "Female", "Prefer not to say"])
+        .range(["#1f77b4", "#d95555", "#2ca02c"]);
 
         // Create the stream graph
         g3.selectAll("path")
@@ -452,6 +471,7 @@ function stream(data, margin) {
             .attr("y", streamHeight + 35)
             .attr("font-size", "14px")
             .attr("text-anchor", "middle")
+            .attr("font-weight", "bold")
             .text("Age Group");
 
         // Y label
@@ -461,6 +481,7 @@ function stream(data, margin) {
             .attr("font-size", "14px")
             .attr("text-anchor", "middle")
             .attr("transform", "rotate(-90)")
+            .attr("font-weight", "bold")
             .text("Exercise Frequency Distribution");
 
         // Create legend for the stream graph
