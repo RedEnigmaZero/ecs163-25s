@@ -66,6 +66,9 @@ function scatter(data, margin) {
     const scatterWidth = containerWidth - margin.left - margin.right;
     const scatterHeight = containerHeight - margin.top - margin.bottom;
 
+    console.log("Scatter Container - Width:", containerWidth, "Height:", containerHeight);
+    console.log("Scatter Plot Area - Width:", scatterWidth, "Height:", scatterHeight);
+
     if (scatterHeight < 0) scatterHeight = 0;
 
 
@@ -351,7 +354,6 @@ function stream(data, margin) {
     const streamHeight = containerHeight + 80 - margin.top - margin.bottom;
     if (streamHeight < 0) streamHeight = 0;
 
-    // Inside stream function
     console.log("Stream Container - Width:", containerWidth, "Height:", containerHeight);
     console.log("Stream Graph Area - Width:", streamWidth, "Height:", streamHeight);
 
