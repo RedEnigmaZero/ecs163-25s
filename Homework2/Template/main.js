@@ -20,17 +20,26 @@ let streamMargin = {top: 20, right: 30, bottom: 30, left: 80},
     streamWidth = width - streamMargin.left - streamMargin.right,
     streamHeight = height - streamTop - streamMargin.top - streamMargin.bottom;
 
+function groupBy(objectArray, platform) {
+  return objectArray.reduce(function (acc, obj) {
+    let key = obj[platform];
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(obj)
+    return acc;
+  }, {})
+}
+
 function dashboard() {
-
-    
     const defultMargin = {top: 50, right: 30, bottom: 100, left: 70};
+    
+    // Clear any existing tooltips before redrawing
+    d3.selectAll(".tooltip").remove();
 
-    // plots
     d3.csv("survey 605.csv").then(rawData =>{
-        console.log("rawData", rawData);
-
+        // Data processing
         rawData.forEach(function(d){
-            // Convert data as needed
             d.Age = d["What is your age?"];
             d.Gender = d["What is your gender?"];
             d.Exercise = d["How often do you exercise in a week?"];
@@ -40,19 +49,22 @@ function dashboard() {
             d.MotivationLevel = d["Has the fitness wearable helped you stay motivated to exercise?"];
         });
 
-        console.log("processedData", rawData);
-
-        //plot 1: Scatter Plot
+        // Create visualizations
         scatter(rawData, defultMargin);
-
-        //plot 2: Bar Chart for impact of wearable by age
-        bar(rawData, defultMargin);
-
-        // plot 3: Stream graph for frequency by age and gender
+        pie(rawData, defultMargin);    
         stream(rawData, defultMargin);
 
-        }).catch(function(error){
-        console.log(error);
+    }).catch(function(error){
+        console.log("Error loading data:", error);
+        // Display error message in visualizations
+        const containers = ["#scatter-plot-container", "#bar-chart-container", "#stream-graph-container"];
+        containers.forEach(container => {
+            d3.select(container)
+                .append("p")
+                .style("color", "red")
+                .style("text-align", "center")
+                .text("Error loading data. Please try refreshing the page.");
+        });
     });
 }
 
@@ -343,6 +355,180 @@ function bar(data, margin) {
         });
 }
 
+function topWearableImpacts(ageGroup) {
+    let impactGroups = groupBy(data, "Age");
+    let impacts = [];
+    
+    if (impactGroups[ageGroup]) {
+        impacts = impactGroups[ageGroup].map(entry => ({
+            impact: entry.WearableImpact,
+            motivation: entry.MotivationLevel,
+            achievement: entry.GoalAchievement
+        }));
+    }
+    
+    return impacts.slice(0, 5);
+}
+
+function impactDistribution(data) {
+    const impactTypes = {
+        "Positively impacted": "Positively impacted my fitness routine",
+        "No impact": "No impact on my fitness routine",
+        "Negatively impacted": "Negatively impacted my fitness routine",
+        "Unknown": "I don't know"
+    };
+    
+    // Directly count impacts without age grouping
+    let formattedData = {};
+    
+    // Initialize counters
+    Object.keys(impactTypes).forEach(key => {
+        formattedData[key] = 0;
+    });
+    
+    // Count impacts
+    data.forEach(d => {
+        Object.entries(impactTypes).forEach(([key, value]) => {
+            if (d.WearableImpact === value) {
+                formattedData[key]++;
+            }
+        });
+    });
+    
+    // Convert to array format for pie chart
+    return Object.entries(formattedData).map(([impact, value]) => ({
+        name: impact,
+        value: value,
+        fullName: impactTypes[impact] // Store full name for tooltip
+    }));
+}
+
+function pie(data, margin) {
+    const container = d3.select("#bar-chart-container");
+    container.selectAll("svg").remove();
+
+    const containerWidth = container.node().getBoundingClientRect().width;
+    const containerHeight = container.node().getBoundingClientRect().height;
+    const radius = Math.min(containerWidth, containerHeight) / 2.5;
+
+    const svg = container.append("svg")
+        .attr("width", containerWidth)
+        .attr("height", containerHeight)
+        .append("g")
+        .attr("transform", `translate(${containerWidth/2}, ${containerHeight/2})`);
+
+    // Process data for pie chart
+    const pieData = impactDistribution(data);
+    const totalResponses = d3.sum(pieData, d => d.value);
+
+    // Create pie layout
+    const pie = d3.pie()
+        .value(d => d.value)
+        .sort(null);
+
+    // Create arc generators
+    const arc = d3.arc()
+        .innerRadius(radius * 0.4) 
+        .outerRadius(radius);
+
+    const arcHighlight = d3.arc()
+        .innerRadius(radius * 0.35) 
+        .outerRadius(radius * 1.1);
+
+    // Color scale for impact types
+    const impactColors = {
+        "Positively impacted": "#2ca02c",
+        "No impact": "#999999",
+        "Negatively impacted": "#d62728",
+        "Unknown": "#ffeb3b"
+    };
+
+    // Enhanced tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    // Draw donut slices with enhanced transitions
+    const slices = svg.selectAll("path")
+        .data(pie(pieData))
+        .enter()
+        .append("path")
+        .attr("d", arc)
+        .attr("fill", d => impactColors[d.data.name])
+        .attr("stroke", "white")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer")
+        .on("mouseover", function(event, d) {
+            // Enhanced highlight transition
+            d3.select(this)
+                .transition()
+                .duration(300)
+                .attr("d", arcHighlight)
+                .attr("opacity", 0.8);
+            
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", 1);
+            
+            // Enhanced tooltip content
+            tooltip.html(`
+                <strong>${d.data.fullName}</strong><br>
+                Count: ${d.data.value}<br>
+                Percentage: ${((d.value / totalResponses) * 100).toFixed(1)}%
+            `)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 15) + "px");
+        })
+        .on("mouseout", function() {
+            d3.select(this)
+                .transition()
+                .duration(300)
+                .attr("d", arc)
+                .attr("opacity", 1);
+            
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
+
+    // Add center text
+    svg.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("font-size", "20px")
+        .attr("fill", "#666")
+        .text(`Total: ${totalResponses}`);
+
+    // Add title
+    svg.append("text")
+        .attr("x", 0)
+        .attr("y", -containerHeight/2 + margin.top)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+        .text("Wearable Impact Distribution");
+
+    // Add legend
+    const legend = svg.append("g")
+        .attr("transform", `translate(${radius + 30}, ${-radius + 20})`);
+
+    Object.entries(impactColors).forEach(([impact, color], i) => {
+        const legendRow = legend.append("g")
+            .attr("transform", `translate(0, ${i * 20})`);
+        
+        legendRow.append("rect")
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("fill", color);
+        
+        legendRow.append("text")
+            .attr("x", 20)
+            .attr("y", 9)
+            .attr("font-size", "12px")
+            .text(impact);
+    });
+}
+
 function stream(data, margin) {
     const container = d3.select("#stream-graph-container");
     container.selectAll("svg").remove();
@@ -359,7 +545,6 @@ function stream(data, margin) {
 
     if (streamHeight <= 0 || streamWidth <= 0) {
         console.error("Stream graph has NO DRAWING AREA. Height or Width is <= 0.");
-        // Optionally, write this message to the container itself for visual feedback
         container.append("p").style("color", "red").text("Error: Stream graph has no drawing area.");
         return; // Exit if no space
     }
@@ -532,6 +717,12 @@ function stream(data, margin) {
         });
 }
 
-dashboard();
 
-window.addEventListener("resize", dashboard);
+let resizeTimeout;
+window.addEventListener("resize", function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(dashboard, 250);
+});
+
+// Initial dashboard creation
+dashboard();
