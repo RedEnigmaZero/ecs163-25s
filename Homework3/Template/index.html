@@ -13,19 +13,19 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        min-height: 100vh; /* Use min-height to ensure it takes at least full viewport height */
+        min-height: 100vh;
         box-sizing: border-box;
       }
       .dashboard-title {
         text-align: center;
         padding: 10px 20px;
-        background-color: #eb8f34; /* Orange background from original */
-        color: white; /* Added for better contrast on orange */
+        background-color: #eb8f34;
+        color: white;
         border-radius: 8px;
         margin-bottom: 20px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         width: 90%;
-        margin-top: 20px; /* Added some top margin */
+        margin-top: 20px;
       }
 
       /* Styles for the Global Genre Filter */
@@ -48,13 +48,13 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 10px 15px; /* Row gap and column gap */
+        gap: 10px 15px;
         padding: 5px 0;
       }
       #genre-checklist label {
         font-size: 0.9em;
-        display: flex; /* Align checkbox and text */
-        align-items: center; /* Vertically center checkbox and text */
+        display: flex;
+        align-items: center;
       }
       #genre-checklist input[type="checkbox"] {
         margin-right: 5px;
@@ -80,51 +80,49 @@
       }
 
       .dashborad-grid {
-        /* Corrected typo from 'dashborad' to 'dashboard' if intended, kept as is from user snippet */
         display: grid;
         grid-template-columns: 1fr 1fr;
-        /* Adjusted grid-template-rows for the new layout */
-        grid-template-rows: auto auto; /* Stream graph on first row, scatter/pie on second */
+
+        grid-template-rows: 1.5fr 1fr;
         gap: 20px;
         width: 90%;
-        flex-grow: 1; /* Allows grid to take available space */
+        flex-grow: 1;
         padding-bottom: 20px;
       }
       .chart-container {
         background-color: white;
         border-radius: 8px;
-        padding: 20px; /* Increased padding slightly */
+        padding: 20px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        display: flex; /* Using flex to help manage internal layout like titles */
+        display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
 
       /* Updated Grid Layout for Charts */
       #stream-graph-container {
-        grid-column: 1 / 3; /* Span both columns */
-        grid-row: 1 / 2; /* First row */
-        min-height: 300px; /* Ensure it has some minimum height */
+        grid-column: 1 / 3;
+        grid-row: 1 / 2;
+        min-height: 30vh;
       }
       #scatter-plot-container {
-        grid-column: 1 / 2; /* First column */
-        grid-row: 2 / 3; /* Second row */
-        /* max-height: 450px; /* Can be adjusted or removed if SVG viewBox is used effectively */
+        grid-column: 1 / 2;
+        grid-row: 2 / 3;
+        min-height: 25vh;
       }
       #pie-chart-container {
-        /* Renamed from bar-chart-container */
-        grid-column: 2 / 3; /* Second column */
-        grid-row: 2 / 3; /* Second row */
-        /* max-height: 450px; */
+        grid-column: 2 / 3;
+        grid-row: 2 / 3;
+        min-height: 25v;
       }
 
       .chart-container svg {
         width: 100%;
-        height: 100%; /* Make SVG take full space of its flex container part */
+        height: 100%;
         display: block;
-        flex-grow: 1; /* Allow SVG to grow if chart-container is flex */
+        flex-grow: 1;
       }
       .tooltip {
-        /* Existing tooltip style */
         position: absolute;
         background-color: rgba(255, 255, 255, 0.9);
         border: 1px solid #ddd;
@@ -138,7 +136,7 @@
       /* Style for the Y-axis selector in Scatter Plot */
       .scatter-controls {
         margin-bottom: 10px;
-        text-align: center; /* Center the label and select */
+        text-align: center;
       }
       .scatter-controls label {
         margin-right: 5px;
