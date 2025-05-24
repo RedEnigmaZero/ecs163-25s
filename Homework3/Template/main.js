@@ -1,3 +1,8 @@
+/*
+    Disclaimer: There was use of AI within the parameters stated in the Course Logistics. 
+    I used it for understanding d3.js, d3.js animations, and brainstorm some ideas. All ideas are mine. 
+    Also, I used it to help debug.
+*/
 // --- Global Variables & Initial Setup ---
 let allData = [];
 let uniqueGenres = [];
