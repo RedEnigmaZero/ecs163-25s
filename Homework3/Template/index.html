@@ -5,16 +5,19 @@
     <meta name="description" content="Music and Mental Wellness Dashboard" />
     <title>Music & Mental Wellness Dashboard</title>
     <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0px;
         background-color: #f9f9f9;
         display: flex;
         flex-direction: column;
         align-items: center;
-        min-height: 100vh;
-        box-sizing: border-box;
       }
       .dashboard-title {
         text-align: center;
@@ -26,9 +29,9 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         width: 90%;
         margin-top: 20px;
+        flex-shrink: 0;
       }
 
-      /* Styles for the Global Genre Filter */
       .global-filter-container {
         width: 90%;
         margin-bottom: 20px;
@@ -37,6 +40,7 @@
         border-radius: 8px;
         text-align: center;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        flex-shrink: 0;
       }
       .global-filter-container h3 {
         margin-top: 0;
@@ -82,13 +86,14 @@
       .dashborad-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-
         grid-template-rows: 1.5fr 1fr;
         gap: 20px;
         width: 90%;
         flex-grow: 1;
         padding-bottom: 20px;
+        overflow: hidden;
       }
+
       .chart-container {
         background-color: white;
         border-radius: 8px;
@@ -99,29 +104,26 @@
         overflow: hidden;
       }
 
-      /* Updated Grid Layout for Charts */
+      /* Specific grid placements */
       #stream-graph-container {
         grid-column: 1 / 3;
         grid-row: 1 / 2;
-        min-height: 30vh;
       }
       #scatter-plot-container {
         grid-column: 1 / 2;
         grid-row: 2 / 3;
-        min-height: 25vh;
       }
       #pie-chart-container {
         grid-column: 2 / 3;
         grid-row: 2 / 3;
-        min-height: 25v;
       }
 
       .chart-container svg {
-        width: 100%;
-        height: 100%;
         display: block;
+        width: 100%;
         flex-grow: 1;
       }
+
       .tooltip {
         position: absolute;
         background-color: rgba(255, 255, 255, 0.9);
@@ -133,10 +135,10 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
-      /* Style for the Y-axis selector in Scatter Plot */
       .scatter-controls {
         margin-bottom: 10px;
         text-align: center;
+        flex-shrink: 0;
       }
       .scatter-controls label {
         margin-right: 5px;
